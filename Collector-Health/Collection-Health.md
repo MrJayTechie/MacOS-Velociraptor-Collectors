@@ -112,7 +112,7 @@ COLLECTION METADATA
   Duration:        7m 57s
   Total Files:     15,066
   Total Size:      3.3 GB
-  Users Found:     aljammal
+  Users Found:     <user>
 
 ========================================================================
 ARTIFACT PRESENCE (70 artifacts)
