@@ -10,7 +10,7 @@ A set of 70 Velociraptor artefacts that collect macOS forensic evidence into a s
 
 ## Quick start
 
-1. **Build the collector** in the Velociraptor GUI: `Server Artifacts → New Collection → Add Artifact → search "MacOS.Collection"`. Select all 71 `MacOS.Collection.*` artefacts, set `Target = ZIP`, set `OptAdmin = true`, click `Launch`.
+1. **Build the collector** in the Velociraptor GUI: `Client Artifacts → New Collection → Add Artifact → Upload the Zip file. Select all 71 `MacOS.Collection.*` artefacts, click `Upload`.
 2. The GUI produces two downloads — `Collector_velociraptor-collector` (the binary) and `spec.yaml` (the build spec, audit-only).
 3. **Grant Full Disk Access** to the collector binary (see below). Without FDA, ~25 % of the artefacts return zero rows.
 4. Run the collector on the target Mac:
