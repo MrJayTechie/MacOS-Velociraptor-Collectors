@@ -1,0 +1,18 @@
+name: MacOS.Live.LogStats
+description: |
+  Lightweight unified-log health indicator — just counts, not content. Tells
+  the analyst how busy the log pipeline is. Full tracev3 log data comes from
+  the offline collector (/var/db/diagnostics/), not here.
+author: Ali Jammal
+
+precondition: SELECT OS FROM info() WHERE OS =~ 'darwin'
+
+sources:
+- name: LogStats
+  query: |
+    LET run = SELECT Stdout, Stderr, ReturnCode FROM execve(argv=["log", "stats", "--last", "24h"])
+    SELECT "log stats --last 24h" AS Command, run[0].ReturnCode AS ExitCode,
+           len(list=run[0].Stdout) AS StdoutBytes, len(list=run[0].Stderr) AS StderrBytes,
+           run[0].Stderr AS Stderr,
+           upload(accessor="data", file=run[0].Stdout, name="LogStats.raw.txt") AS RawUpload
+    FROM scope()

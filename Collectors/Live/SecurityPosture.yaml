@@ -1,0 +1,75 @@
+name: MacOS.Live.SecurityPosture
+description: |
+  Captures runtime security flags: Gatekeeper, SIP, FileVault, firewall, NVRAM
+  boot-args. These are kernel/runtime values — not extractable from disk files
+  alone. If any come back "disabled", treat as a critical finding.
+author: Ali Jammal
+
+precondition: SELECT OS FROM info() WHERE OS =~ 'darwin'
+
+sources:
+- name: Spctl
+  query: |
+    LET run = SELECT Stdout, Stderr, ReturnCode FROM execve(argv=["spctl", "--status"])
+    SELECT "spctl --status" AS Command, run[0].ReturnCode AS ExitCode,
+           len(list=run[0].Stdout) AS StdoutBytes, len(list=run[0].Stderr) AS StderrBytes,
+           run[0].Stderr AS Stderr,
+           upload(accessor="data", file=run[0].Stdout, name="Spctl.raw.txt") AS RawUpload
+    FROM scope()
+
+- name: Csrutil
+  query: |
+    LET run = SELECT Stdout, Stderr, ReturnCode FROM execve(argv=["csrutil", "status"])
+    SELECT "csrutil status" AS Command, run[0].ReturnCode AS ExitCode,
+           len(list=run[0].Stdout) AS StdoutBytes, len(list=run[0].Stderr) AS StderrBytes,
+           run[0].Stderr AS Stderr,
+           upload(accessor="data", file=run[0].Stdout, name="Csrutil.raw.txt") AS RawUpload
+    FROM scope()
+
+- name: Fdesetup
+  query: |
+    LET run = SELECT Stdout, Stderr, ReturnCode FROM execve(argv=["fdesetup", "status"])
+    SELECT "fdesetup status" AS Command, run[0].ReturnCode AS ExitCode,
+           len(list=run[0].Stdout) AS StdoutBytes, len(list=run[0].Stderr) AS StderrBytes,
+           run[0].Stderr AS Stderr,
+           upload(accessor="data", file=run[0].Stdout, name="Fdesetup.raw.txt") AS RawUpload
+    FROM scope()
+
+- name: Nvram
+  query: |
+    LET run = SELECT Stdout, Stderr, ReturnCode FROM execve(argv=["nvram", "-p"])
+    SELECT "nvram -p" AS Command, run[0].ReturnCode AS ExitCode,
+           len(list=run[0].Stdout) AS StdoutBytes, len(list=run[0].Stderr) AS StderrBytes,
+           run[0].Stderr AS Stderr,
+           upload(accessor="data", file=run[0].Stdout, name="Nvram.raw.txt") AS RawUpload
+    FROM scope()
+
+- name: FirewallGlobal
+  query: |
+    LET run = SELECT Stdout, Stderr, ReturnCode
+              FROM execve(argv=["/usr/libexec/ApplicationFirewall/socketfilterfw", "--getglobalstate"])
+    SELECT "socketfilterfw --getglobalstate" AS Command, run[0].ReturnCode AS ExitCode,
+           len(list=run[0].Stdout) AS StdoutBytes, len(list=run[0].Stderr) AS StderrBytes,
+           run[0].Stderr AS Stderr,
+           upload(accessor="data", file=run[0].Stdout, name="FirewallGlobal.raw.txt") AS RawUpload
+    FROM scope()
+
+- name: FirewallApps
+  query: |
+    LET run = SELECT Stdout, Stderr, ReturnCode
+              FROM execve(argv=["/usr/libexec/ApplicationFirewall/socketfilterfw", "--listapps"])
+    SELECT "socketfilterfw --listapps" AS Command, run[0].ReturnCode AS ExitCode,
+           len(list=run[0].Stdout) AS StdoutBytes, len(list=run[0].Stderr) AS StderrBytes,
+           run[0].Stderr AS Stderr,
+           upload(accessor="data", file=run[0].Stdout, name="FirewallApps.raw.txt") AS RawUpload
+    FROM scope()
+
+- name: FirewallStealth
+  query: |
+    LET run = SELECT Stdout, Stderr, ReturnCode
+              FROM execve(argv=["/usr/libexec/ApplicationFirewall/socketfilterfw", "--getstealthmode"])
+    SELECT "socketfilterfw --getstealthmode" AS Command, run[0].ReturnCode AS ExitCode,
+           len(list=run[0].Stdout) AS StdoutBytes, len(list=run[0].Stderr) AS StderrBytes,
+           run[0].Stderr AS Stderr,
+           upload(accessor="data", file=run[0].Stdout, name="FirewallStealth.raw.txt") AS RawUpload
+    FROM scope()

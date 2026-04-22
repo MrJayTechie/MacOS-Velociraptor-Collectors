@@ -1,0 +1,27 @@
+name: MacOS.Live.USB
+description: |
+  Captures live USB device tree via system_profiler (JSON) and ioreg.
+  Useful for tracking currently-attached removable media during incident response.
+author: Ali Jammal
+
+precondition: SELECT OS FROM info() WHERE OS =~ 'darwin'
+
+sources:
+- name: SystemProfilerUSB
+  query: |
+    LET run = SELECT Stdout, Stderr, ReturnCode
+              FROM execve(argv=["system_profiler", "SPUSBDataType", "-json"])
+    SELECT "system_profiler SPUSBDataType -json" AS Command, run[0].ReturnCode AS ExitCode,
+           len(list=run[0].Stdout) AS StdoutBytes, len(list=run[0].Stderr) AS StderrBytes,
+           run[0].Stderr AS Stderr,
+           upload(accessor="data", file=run[0].Stdout, name="SystemProfilerUSB.raw.json") AS RawUpload
+    FROM scope()
+
+- name: IoregUSB
+  query: |
+    LET run = SELECT Stdout, Stderr, ReturnCode FROM execve(argv=["ioreg", "-p", "IOUSB", "-w", "0"])
+    SELECT "ioreg -p IOUSB -w 0" AS Command, run[0].ReturnCode AS ExitCode,
+           len(list=run[0].Stdout) AS StdoutBytes, len(list=run[0].Stderr) AS StderrBytes,
+           run[0].Stderr AS Stderr,
+           upload(accessor="data", file=run[0].Stdout, name="IoregUSB.raw.txt") AS RawUpload
+    FROM scope()

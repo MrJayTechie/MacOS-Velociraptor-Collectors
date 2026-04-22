@@ -1,0 +1,53 @@
+name: MacOS.Live.Sessions
+description: |
+  Captures live user session state: who is logged in, recent login history,
+  current effective identity and group membership.
+author: Ali Jammal
+
+precondition: SELECT OS FROM info() WHERE OS =~ 'darwin'
+
+sources:
+- name: Who
+  query: |
+    LET run = SELECT Stdout, Stderr, ReturnCode FROM execve(argv=["who"])
+    SELECT "who" AS Command, run[0].ReturnCode AS ExitCode,
+           len(list=run[0].Stdout) AS StdoutBytes, len(list=run[0].Stderr) AS StderrBytes,
+           run[0].Stderr AS Stderr,
+           upload(accessor="data", file=run[0].Stdout, name="Who.raw.txt") AS RawUpload
+    FROM scope()
+
+- name: W
+  query: |
+    LET run = SELECT Stdout, Stderr, ReturnCode FROM execve(argv=["w"])
+    SELECT "w" AS Command, run[0].ReturnCode AS ExitCode,
+           len(list=run[0].Stdout) AS StdoutBytes, len(list=run[0].Stderr) AS StderrBytes,
+           run[0].Stderr AS Stderr,
+           upload(accessor="data", file=run[0].Stdout, name="W.raw.txt") AS RawUpload
+    FROM scope()
+
+- name: Last
+  query: |
+    LET run = SELECT Stdout, Stderr, ReturnCode FROM execve(argv=["last", "-20"])
+    SELECT "last -20" AS Command, run[0].ReturnCode AS ExitCode,
+           len(list=run[0].Stdout) AS StdoutBytes, len(list=run[0].Stderr) AS StderrBytes,
+           run[0].Stderr AS Stderr,
+           upload(accessor="data", file=run[0].Stdout, name="Last.raw.txt") AS RawUpload
+    FROM scope()
+
+- name: Id
+  query: |
+    LET run = SELECT Stdout, Stderr, ReturnCode FROM execve(argv=["id"])
+    SELECT "id" AS Command, run[0].ReturnCode AS ExitCode,
+           len(list=run[0].Stdout) AS StdoutBytes, len(list=run[0].Stderr) AS StderrBytes,
+           run[0].Stderr AS Stderr,
+           upload(accessor="data", file=run[0].Stdout, name="Id.raw.txt") AS RawUpload
+    FROM scope()
+
+- name: Groups
+  query: |
+    LET run = SELECT Stdout, Stderr, ReturnCode FROM execve(argv=["groups"])
+    SELECT "groups" AS Command, run[0].ReturnCode AS ExitCode,
+           len(list=run[0].Stdout) AS StdoutBytes, len(list=run[0].Stderr) AS StderrBytes,
+           run[0].Stderr AS Stderr,
+           upload(accessor="data", file=run[0].Stdout, name="Groups.raw.txt") AS RawUpload
+    FROM scope()

@@ -1,0 +1,28 @@
+name: MacOS.Live.MDM
+description: |
+  Captures live MDM enrollment state via the profiles command. Distinct from
+  the on-disk ConfigurationProfiles directory (offline collector) — this shows
+  what the mdmclient currently considers installed and enrolled.
+  Requires root.
+author: Ali Jammal
+
+precondition: SELECT OS FROM info() WHERE OS =~ 'darwin'
+
+sources:
+- name: ProfilesList
+  query: |
+    LET run = SELECT Stdout, Stderr, ReturnCode FROM execve(argv=["profiles", "-L"])
+    SELECT "profiles -L" AS Command, run[0].ReturnCode AS ExitCode,
+           len(list=run[0].Stdout) AS StdoutBytes, len(list=run[0].Stderr) AS StderrBytes,
+           run[0].Stderr AS Stderr,
+           upload(accessor="data", file=run[0].Stdout, name="ProfilesList.raw.txt") AS RawUpload
+    FROM scope()
+
+- name: ProfilesEnrollment
+  query: |
+    LET run = SELECT Stdout, Stderr, ReturnCode FROM execve(argv=["profiles", "show", "-type", "enrollment"])
+    SELECT "profiles show -type enrollment" AS Command, run[0].ReturnCode AS ExitCode,
+           len(list=run[0].Stdout) AS StdoutBytes, len(list=run[0].Stderr) AS StderrBytes,
+           run[0].Stderr AS Stderr,
+           upload(accessor="data", file=run[0].Stdout, name="ProfilesEnrollment.raw.txt") AS RawUpload
+    FROM scope()

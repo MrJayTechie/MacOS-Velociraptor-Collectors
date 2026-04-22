@@ -1,0 +1,40 @@
+name: MacOS.Live.CodeIntegrity
+description: |
+  For every unique executable path currently open by a running process, runs
+  codesign -dv, spctl -a, and sha256. Surfaces unsigned / adhoc-signed /
+  tampered binaries that are live right now.
+author: Ali Jammal
+
+precondition: SELECT OS FROM info() WHERE OS =~ 'darwin'
+
+sources:
+- name: PsaxComm
+  query: |
+    # Capture the list of running executable paths first (via ps -eo comm=).
+    LET run = SELECT Stdout, Stderr, ReturnCode
+              FROM execve(argv=["ps", "-Axo", "pid,comm"])
+    SELECT "ps -Axo pid,comm" AS Command, run[0].ReturnCode AS ExitCode,
+           len(list=run[0].Stdout) AS StdoutBytes, len(list=run[0].Stderr) AS StderrBytes,
+           run[0].Stderr AS Stderr,
+           upload(accessor="data", file=run[0].Stdout, name="PsaxComm.raw.txt") AS RawUpload
+    FROM scope()
+
+- name: CodesignPerBinary
+  query: |
+    # Iterate unique executable paths extracted from ps.
+    # Produces one row per binary with its codesign / spctl / sha256 triple.
+    LET ps_out = SELECT Stdout
+                 FROM execve(argv=["ps", "-Axo", "comm="])
+    LET paths = SELECT Line AS Path
+                FROM parse_lines(filename=ps_out[0].Stdout, accessor="data")
+                WHERE Line =~ "^/" GROUP BY Line
+
+    SELECT
+      Path,
+      (SELECT Stdout, Stderr, ReturnCode
+       FROM execve(argv=["codesign", "-dv", "--verbose=4", Path])) AS Codesign,
+      (SELECT Stdout, Stderr, ReturnCode
+       FROM execve(argv=["spctl", "-a", "-vv", Path])) AS Spctl,
+      (SELECT Stdout, ReturnCode
+       FROM execve(argv=["shasum", "-a", "256", Path])) AS Sha256
+    FROM paths

@@ -1,0 +1,26 @@
+name: MacOS.Live.KernelModules
+description: |
+  Captures currently loaded kernel extensions and system extensions.
+  kextstat for legacy KEXTs, systemextensionsctl for macOS 10.15+ system extensions.
+author: Ali Jammal
+
+precondition: SELECT OS FROM info() WHERE OS =~ 'darwin'
+
+sources:
+- name: Kextstat
+  query: |
+    LET run = SELECT Stdout, Stderr, ReturnCode FROM execve(argv=["kextstat", "-l"])
+    SELECT "kextstat -l" AS Command, run[0].ReturnCode AS ExitCode,
+           len(list=run[0].Stdout) AS StdoutBytes, len(list=run[0].Stderr) AS StderrBytes,
+           run[0].Stderr AS Stderr,
+           upload(accessor="data", file=run[0].Stdout, name="Kextstat.raw.txt") AS RawUpload
+    FROM scope()
+
+- name: SystemExtensions
+  query: |
+    LET run = SELECT Stdout, Stderr, ReturnCode FROM execve(argv=["systemextensionsctl", "list"])
+    SELECT "systemextensionsctl list" AS Command, run[0].ReturnCode AS ExitCode,
+           len(list=run[0].Stdout) AS StdoutBytes, len(list=run[0].Stderr) AS StderrBytes,
+           run[0].Stderr AS Stderr,
+           upload(accessor="data", file=run[0].Stdout, name="SystemExtensions.raw.txt") AS RawUpload
+    FROM scope()

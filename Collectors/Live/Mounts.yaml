@@ -1,0 +1,53 @@
+name: MacOS.Live.Mounts
+description: |
+  Captures live volume / mount state. Includes Time Machine backup inventory
+  which is only queryable via tmutil, not from disk files.
+author: Ali Jammal
+
+precondition: SELECT OS FROM info() WHERE OS =~ 'darwin'
+
+sources:
+- name: Mount
+  query: |
+    LET run = SELECT Stdout, Stderr, ReturnCode FROM execve(argv=["mount"])
+    SELECT "mount" AS Command, run[0].ReturnCode AS ExitCode,
+           len(list=run[0].Stdout) AS StdoutBytes, len(list=run[0].Stderr) AS StderrBytes,
+           run[0].Stderr AS Stderr,
+           upload(accessor="data", file=run[0].Stdout, name="Mount.raw.txt") AS RawUpload
+    FROM scope()
+
+- name: DiskutilList
+  query: |
+    LET run = SELECT Stdout, Stderr, ReturnCode FROM execve(argv=["diskutil", "list", "-plist"])
+    SELECT "diskutil list -plist" AS Command, run[0].ReturnCode AS ExitCode,
+           len(list=run[0].Stdout) AS StdoutBytes, len(list=run[0].Stderr) AS StderrBytes,
+           run[0].Stderr AS Stderr,
+           upload(accessor="data", file=run[0].Stdout, name="DiskutilList.raw.plist") AS RawUpload
+    FROM scope()
+
+- name: DiskutilApfs
+  query: |
+    LET run = SELECT Stdout, Stderr, ReturnCode FROM execve(argv=["diskutil", "apfs", "list", "-plist"])
+    SELECT "diskutil apfs list -plist" AS Command, run[0].ReturnCode AS ExitCode,
+           len(list=run[0].Stdout) AS StdoutBytes, len(list=run[0].Stderr) AS StderrBytes,
+           run[0].Stderr AS Stderr,
+           upload(accessor="data", file=run[0].Stdout, name="DiskutilApfs.raw.plist") AS RawUpload
+    FROM scope()
+
+- name: TmutilBackups
+  query: |
+    LET run = SELECT Stdout, Stderr, ReturnCode FROM execve(argv=["tmutil", "listbackups"])
+    SELECT "tmutil listbackups" AS Command, run[0].ReturnCode AS ExitCode,
+           len(list=run[0].Stdout) AS StdoutBytes, len(list=run[0].Stderr) AS StderrBytes,
+           run[0].Stderr AS Stderr,
+           upload(accessor="data", file=run[0].Stdout, name="TmutilBackups.raw.txt") AS RawUpload
+    FROM scope()
+
+- name: TmutilLatest
+  query: |
+    LET run = SELECT Stdout, Stderr, ReturnCode FROM execve(argv=["tmutil", "latestbackup"])
+    SELECT "tmutil latestbackup" AS Command, run[0].ReturnCode AS ExitCode,
+           len(list=run[0].Stdout) AS StdoutBytes, len(list=run[0].Stderr) AS StderrBytes,
+           run[0].Stderr AS Stderr,
+           upload(accessor="data", file=run[0].Stdout, name="TmutilLatest.raw.txt") AS RawUpload
+    FROM scope()

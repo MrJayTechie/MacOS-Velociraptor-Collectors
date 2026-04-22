@@ -1,0 +1,22 @@
+name: MacOS.Live.Hardware
+description: |
+  Captures hardware / OS / storage snapshot via system_profiler -json.
+  Output is native JSON (preserved as-is, not flattened to JSONL).
+author: Ali Jammal
+
+precondition: SELECT OS FROM info() WHERE OS =~ 'darwin'
+
+sources:
+- name: SystemProfiler
+  query: |
+    LET run = SELECT Stdout, Stderr, ReturnCode
+              FROM execve(argv=["system_profiler", "-json",
+                                "SPHardwareDataType",
+                                "SPSoftwareDataType",
+                                "SPStorageDataType"])
+    SELECT "system_profiler -json SPHardwareDataType SPSoftwareDataType SPStorageDataType" AS Command,
+           run[0].ReturnCode AS ExitCode,
+           len(list=run[0].Stdout) AS StdoutBytes, len(list=run[0].Stderr) AS StderrBytes,
+           run[0].Stderr AS Stderr,
+           upload(accessor="data", file=run[0].Stdout, name="SystemProfiler.raw.json") AS RawUpload
+    FROM scope()

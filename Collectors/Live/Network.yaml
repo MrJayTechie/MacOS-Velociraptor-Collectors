@@ -1,0 +1,98 @@
+name: MacOS.Live.Network
+description: |
+  Captures live network state: sockets, routing, ARP, DNS resolver config, pf rules.
+  Uploads raw stdout verbatim and emits one JSONL row per command with metadata.
+author: Ali Jammal
+
+precondition: SELECT OS FROM info() WHERE OS =~ 'darwin'
+
+sources:
+- name: LsofInet
+  query: |
+    LET run = SELECT Stdout, Stderr, ReturnCode FROM execve(argv=["lsof", "-i", "-nP"])
+    SELECT "lsof -i -nP" AS Command, run[0].ReturnCode AS ExitCode,
+           len(list=run[0].Stdout) AS StdoutBytes, len(list=run[0].Stderr) AS StderrBytes,
+           run[0].Stderr AS Stderr,
+           upload(accessor="data", file=run[0].Stdout, name="LsofInet.raw.txt") AS RawUpload
+    FROM scope()
+
+- name: Netstat
+  query: |
+    LET run = SELECT Stdout, Stderr, ReturnCode FROM execve(argv=["netstat", "-anv"])
+    SELECT "netstat -anv" AS Command, run[0].ReturnCode AS ExitCode,
+           len(list=run[0].Stdout) AS StdoutBytes, len(list=run[0].Stderr) AS StderrBytes,
+           run[0].Stderr AS Stderr,
+           upload(accessor="data", file=run[0].Stdout, name="Netstat.raw.txt") AS RawUpload
+    FROM scope()
+
+- name: Route
+  query: |
+    LET run = SELECT Stdout, Stderr, ReturnCode FROM execve(argv=["route", "-n", "get", "default"])
+    SELECT "route -n get default" AS Command, run[0].ReturnCode AS ExitCode,
+           len(list=run[0].Stdout) AS StdoutBytes, len(list=run[0].Stderr) AS StderrBytes,
+           run[0].Stderr AS Stderr,
+           upload(accessor="data", file=run[0].Stdout, name="Route.raw.txt") AS RawUpload
+    FROM scope()
+
+- name: Arp
+  query: |
+    LET run = SELECT Stdout, Stderr, ReturnCode FROM execve(argv=["arp", "-a"])
+    SELECT "arp -a" AS Command, run[0].ReturnCode AS ExitCode,
+           len(list=run[0].Stdout) AS StdoutBytes, len(list=run[0].Stderr) AS StderrBytes,
+           run[0].Stderr AS Stderr,
+           upload(accessor="data", file=run[0].Stdout, name="Arp.raw.txt") AS RawUpload
+    FROM scope()
+
+- name: Ifconfig
+  query: |
+    LET run = SELECT Stdout, Stderr, ReturnCode FROM execve(argv=["ifconfig", "-a"])
+    SELECT "ifconfig -a" AS Command, run[0].ReturnCode AS ExitCode,
+           len(list=run[0].Stdout) AS StdoutBytes, len(list=run[0].Stderr) AS StderrBytes,
+           run[0].Stderr AS Stderr,
+           upload(accessor="data", file=run[0].Stdout, name="Ifconfig.raw.txt") AS RawUpload
+    FROM scope()
+
+- name: ScutilDNS
+  query: |
+    LET run = SELECT Stdout, Stderr, ReturnCode FROM execve(argv=["scutil", "--dns"])
+    SELECT "scutil --dns" AS Command, run[0].ReturnCode AS ExitCode,
+           len(list=run[0].Stdout) AS StdoutBytes, len(list=run[0].Stderr) AS StderrBytes,
+           run[0].Stderr AS Stderr,
+           upload(accessor="data", file=run[0].Stdout, name="ScutilDNS.raw.txt") AS RawUpload
+    FROM scope()
+
+- name: ScutilProxy
+  query: |
+    LET run = SELECT Stdout, Stderr, ReturnCode FROM execve(argv=["scutil", "--proxy"])
+    SELECT "scutil --proxy" AS Command, run[0].ReturnCode AS ExitCode,
+           len(list=run[0].Stdout) AS StdoutBytes, len(list=run[0].Stderr) AS StderrBytes,
+           run[0].Stderr AS Stderr,
+           upload(accessor="data", file=run[0].Stdout, name="ScutilProxy.raw.txt") AS RawUpload
+    FROM scope()
+
+- name: PfctlRules
+  query: |
+    LET run = SELECT Stdout, Stderr, ReturnCode FROM execve(argv=["pfctl", "-sr"])
+    SELECT "pfctl -sr" AS Command, run[0].ReturnCode AS ExitCode,
+           len(list=run[0].Stdout) AS StdoutBytes, len(list=run[0].Stderr) AS StderrBytes,
+           run[0].Stderr AS Stderr,
+           upload(accessor="data", file=run[0].Stdout, name="PfctlRules.raw.txt") AS RawUpload
+    FROM scope()
+
+- name: PfctlInfo
+  query: |
+    LET run = SELECT Stdout, Stderr, ReturnCode FROM execve(argv=["pfctl", "-si"])
+    SELECT "pfctl -si" AS Command, run[0].ReturnCode AS ExitCode,
+           len(list=run[0].Stdout) AS StdoutBytes, len(list=run[0].Stderr) AS StderrBytes,
+           run[0].Stderr AS Stderr,
+           upload(accessor="data", file=run[0].Stdout, name="PfctlInfo.raw.txt") AS RawUpload
+    FROM scope()
+
+- name: PfctlAll
+  query: |
+    LET run = SELECT Stdout, Stderr, ReturnCode FROM execve(argv=["pfctl", "-s", "all"])
+    SELECT "pfctl -s all" AS Command, run[0].ReturnCode AS ExitCode,
+           len(list=run[0].Stdout) AS StdoutBytes, len(list=run[0].Stderr) AS StderrBytes,
+           run[0].Stderr AS Stderr,
+           upload(accessor="data", file=run[0].Stdout, name="PfctlAll.raw.txt") AS RawUpload
+    FROM scope()

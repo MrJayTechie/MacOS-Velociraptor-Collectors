@@ -1,0 +1,47 @@
+name: MacOS.Live.Processes
+description: |
+  Captures live process state: ps trees (with env vars) and open file handles.
+  Uploads raw stdout verbatim and emits one JSONL row per command with metadata.
+author: Ali Jammal
+
+precondition: SELECT OS FROM info() WHERE OS =~ 'darwin'
+
+sources:
+- name: PsTree
+  query: |
+    LET run = SELECT Stdout, Stderr, ReturnCode
+              FROM execve(argv=["ps", "-Aeo", "pid,ppid,user,uid,gid,start,etime,%cpu,%mem,command"])
+    SELECT
+      "ps -Aeo pid,ppid,user,uid,gid,start,etime,%cpu,%mem,command" AS Command,
+      run[0].ReturnCode AS ExitCode,
+      len(list=run[0].Stdout) AS StdoutBytes,
+      len(list=run[0].Stderr) AS StderrBytes,
+      run[0].Stderr AS Stderr,
+      upload(accessor="data", file=run[0].Stdout, name="PsTree.raw.txt") AS RawUpload
+    FROM scope()
+
+- name: PsAuxwwfEnv
+  query: |
+    LET run = SELECT Stdout, Stderr, ReturnCode
+              FROM execve(argv=["ps", "auxwwfE"])
+    SELECT
+      "ps auxwwfE" AS Command,
+      run[0].ReturnCode AS ExitCode,
+      len(list=run[0].Stdout) AS StdoutBytes,
+      len(list=run[0].Stderr) AS StderrBytes,
+      run[0].Stderr AS Stderr,
+      upload(accessor="data", file=run[0].Stdout, name="PsAuxwwfEnv.raw.txt") AS RawUpload
+    FROM scope()
+
+- name: LsofHandles
+  query: |
+    LET run = SELECT Stdout, Stderr, ReturnCode
+              FROM execve(argv=["lsof", "-nP", "-X"])
+    SELECT
+      "lsof -nP -X" AS Command,
+      run[0].ReturnCode AS ExitCode,
+      len(list=run[0].Stdout) AS StdoutBytes,
+      len(list=run[0].Stderr) AS StderrBytes,
+      run[0].Stderr AS Stderr,
+      upload(accessor="data", file=run[0].Stdout, name="LsofHandles.raw.txt") AS RawUpload
+    FROM scope()
