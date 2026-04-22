@@ -10,7 +10,7 @@ precondition: SELECT OS FROM info() WHERE OS =~ 'darwin'
 sources:
 - name: PsaxComm
   query: |
-    # Capture the list of running executable paths first (via ps -eo comm=).
+    -- Capture the list of running executable paths first (via ps -eo comm=).
     LET run = SELECT Stdout, Stderr, ReturnCode
               FROM execve(argv=["ps", "-Axo", "pid,comm"])
     SELECT "ps -Axo pid,comm" AS Command, run[0].ReturnCode AS ExitCode,
@@ -21,8 +21,8 @@ sources:
 
 - name: CodesignPerBinary
   query: |
-    # Iterate unique executable paths extracted from ps.
-    # Produces one row per binary with its codesign / spctl / sha256 triple.
+    -- Iterate unique executable paths extracted from ps.
+    -- Produces one row per binary with its codesign / spctl / sha256 triple.
     LET ps_out = SELECT Stdout
                  FROM execve(argv=["ps", "-Axo", "comm="])
     LET paths = SELECT Line AS Path
