@@ -9,45 +9,45 @@ precondition: SELECT OS FROM info() WHERE OS =~ 'darwin'
 sources:
 - name: Mount
   query: |
-    LET run = SELECT Stdout, Stderr, ReturnCode FROM execve(argv=["mount"])
+    LET out = "/tmp/MacOS.Live.Mounts.Mount.raw.txt"
+    LET run = SELECT Stdout, Stderr, ReturnCode
+              FROM execve(argv=["/bin/sh", "-c", "mount > " + out])
     SELECT "mount" AS Command, run[0].ReturnCode AS ExitCode,
-           len(list=run[0].Stdout) AS StdoutBytes, len(list=run[0].Stderr) AS StderrBytes,
-           run[0].Stderr AS Stderr,
-           upload(accessor="data", file=run[0].Stdout, name="Mount.raw.txt") AS RawUpload
-    FROM scope()
+           file_info(filename=out).Size AS StdoutBytes, run[0].Stderr AS Stderr,
+           upload(file=out, name="Mount.raw.txt") AS RawUpload FROM scope()
 
 - name: DiskutilList
   query: |
-    LET run = SELECT Stdout, Stderr, ReturnCode FROM execve(argv=["diskutil", "list", "-plist"])
+    LET out = "/tmp/MacOS.Live.Mounts.DiskutilList.raw.plist"
+    LET run = SELECT Stdout, Stderr, ReturnCode
+              FROM execve(argv=["/bin/sh", "-c", "diskutil list -plist > " + out])
     SELECT "diskutil list -plist" AS Command, run[0].ReturnCode AS ExitCode,
-           len(list=run[0].Stdout) AS StdoutBytes, len(list=run[0].Stderr) AS StderrBytes,
-           run[0].Stderr AS Stderr,
-           upload(accessor="data", file=run[0].Stdout, name="DiskutilList.raw.plist") AS RawUpload
-    FROM scope()
+           file_info(filename=out).Size AS StdoutBytes, run[0].Stderr AS Stderr,
+           upload(file=out, name="DiskutilList.raw.plist") AS RawUpload FROM scope()
 
 - name: DiskutilApfs
   query: |
-    LET run = SELECT Stdout, Stderr, ReturnCode FROM execve(argv=["diskutil", "apfs", "list", "-plist"])
+    LET out = "/tmp/MacOS.Live.Mounts.DiskutilApfs.raw.plist"
+    LET run = SELECT Stdout, Stderr, ReturnCode
+              FROM execve(argv=["/bin/sh", "-c", "diskutil apfs list -plist > " + out])
     SELECT "diskutil apfs list -plist" AS Command, run[0].ReturnCode AS ExitCode,
-           len(list=run[0].Stdout) AS StdoutBytes, len(list=run[0].Stderr) AS StderrBytes,
-           run[0].Stderr AS Stderr,
-           upload(accessor="data", file=run[0].Stdout, name="DiskutilApfs.raw.plist") AS RawUpload
-    FROM scope()
+           file_info(filename=out).Size AS StdoutBytes, run[0].Stderr AS Stderr,
+           upload(file=out, name="DiskutilApfs.raw.plist") AS RawUpload FROM scope()
 
 - name: TmutilBackups
   query: |
-    LET run = SELECT Stdout, Stderr, ReturnCode FROM execve(argv=["tmutil", "listbackups"])
+    LET out = "/tmp/MacOS.Live.Mounts.TmutilBackups.raw.txt"
+    LET run = SELECT Stdout, Stderr, ReturnCode
+              FROM execve(argv=["/bin/sh", "-c", "tmutil listbackups > " + out + " 2>&1"])
     SELECT "tmutil listbackups" AS Command, run[0].ReturnCode AS ExitCode,
-           len(list=run[0].Stdout) AS StdoutBytes, len(list=run[0].Stderr) AS StderrBytes,
-           run[0].Stderr AS Stderr,
-           upload(accessor="data", file=run[0].Stdout, name="TmutilBackups.raw.txt") AS RawUpload
-    FROM scope()
+           file_info(filename=out).Size AS StdoutBytes, run[0].Stderr AS Stderr,
+           upload(file=out, name="TmutilBackups.raw.txt") AS RawUpload FROM scope()
 
 - name: TmutilLatest
   query: |
-    LET run = SELECT Stdout, Stderr, ReturnCode FROM execve(argv=["tmutil", "latestbackup"])
+    LET out = "/tmp/MacOS.Live.Mounts.TmutilLatest.raw.txt"
+    LET run = SELECT Stdout, Stderr, ReturnCode
+              FROM execve(argv=["/bin/sh", "-c", "tmutil latestbackup > " + out + " 2>&1"])
     SELECT "tmutil latestbackup" AS Command, run[0].ReturnCode AS ExitCode,
-           len(list=run[0].Stdout) AS StdoutBytes, len(list=run[0].Stderr) AS StderrBytes,
-           run[0].Stderr AS Stderr,
-           upload(accessor="data", file=run[0].Stdout, name="TmutilLatest.raw.txt") AS RawUpload
-    FROM scope()
+           file_info(filename=out).Size AS StdoutBytes, run[0].Stderr AS Stderr,
+           upload(file=out, name="TmutilLatest.raw.txt") AS RawUpload FROM scope()

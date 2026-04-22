@@ -9,14 +9,11 @@ precondition: SELECT OS FROM info() WHERE OS =~ 'darwin'
 sources:
 - name: SystemProfiler
   query: |
+    LET out = "/tmp/MacOS.Live.Hardware.SystemProfiler.raw.json"
     LET run = SELECT Stdout, Stderr, ReturnCode
-              FROM execve(argv=["system_profiler", "-json",
-                                "SPHardwareDataType",
-                                "SPSoftwareDataType",
-                                "SPStorageDataType"])
+              FROM execve(argv=["/bin/sh", "-c",
+                "system_profiler -json SPHardwareDataType SPSoftwareDataType SPStorageDataType > " + out])
     SELECT "system_profiler -json SPHardwareDataType SPSoftwareDataType SPStorageDataType" AS Command,
            run[0].ReturnCode AS ExitCode,
-           len(list=run[0].Stdout) AS StdoutBytes, len(list=run[0].Stderr) AS StderrBytes,
-           run[0].Stderr AS Stderr,
-           upload(accessor="data", file=run[0].Stdout, name="SystemProfiler.raw.json") AS RawUpload
-    FROM scope()
+           file_info(filename=out).Size AS StdoutBytes, run[0].Stderr AS Stderr,
+           upload(file=out, name="SystemProfiler.raw.json") AS RawUpload FROM scope()

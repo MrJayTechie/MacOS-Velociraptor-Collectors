@@ -9,18 +9,18 @@ precondition: SELECT OS FROM info() WHERE OS =~ 'darwin'
 sources:
 - name: Kextstat
   query: |
-    LET run = SELECT Stdout, Stderr, ReturnCode FROM execve(argv=["kextstat", "-l"])
+    LET out = "/tmp/MacOS.Live.KernelModules.Kextstat.raw.txt"
+    LET run = SELECT Stdout, Stderr, ReturnCode
+              FROM execve(argv=["/bin/sh", "-c", "kextstat -l > " + out])
     SELECT "kextstat -l" AS Command, run[0].ReturnCode AS ExitCode,
-           len(list=run[0].Stdout) AS StdoutBytes, len(list=run[0].Stderr) AS StderrBytes,
-           run[0].Stderr AS Stderr,
-           upload(accessor="data", file=run[0].Stdout, name="Kextstat.raw.txt") AS RawUpload
-    FROM scope()
+           file_info(filename=out).Size AS StdoutBytes, run[0].Stderr AS Stderr,
+           upload(file=out, name="Kextstat.raw.txt") AS RawUpload FROM scope()
 
 - name: SystemExtensions
   query: |
-    LET run = SELECT Stdout, Stderr, ReturnCode FROM execve(argv=["systemextensionsctl", "list"])
+    LET out = "/tmp/MacOS.Live.KernelModules.SystemExtensions.raw.txt"
+    LET run = SELECT Stdout, Stderr, ReturnCode
+              FROM execve(argv=["/bin/sh", "-c", "systemextensionsctl list > " + out + " 2>&1"])
     SELECT "systemextensionsctl list" AS Command, run[0].ReturnCode AS ExitCode,
-           len(list=run[0].Stdout) AS StdoutBytes, len(list=run[0].Stderr) AS StderrBytes,
-           run[0].Stderr AS Stderr,
-           upload(accessor="data", file=run[0].Stdout, name="SystemExtensions.raw.txt") AS RawUpload
-    FROM scope()
+           file_info(filename=out).Size AS StdoutBytes, run[0].Stderr AS Stderr,
+           upload(file=out, name="SystemExtensions.raw.txt") AS RawUpload FROM scope()

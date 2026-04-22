@@ -10,47 +10,45 @@ precondition: SELECT OS FROM info() WHERE OS =~ 'darwin'
 sources:
 - name: PmsetEverything
   query: |
-    LET run = SELECT Stdout, Stderr, ReturnCode FROM execve(argv=["pmset", "-g", "everything"])
+    LET out = "/tmp/MacOS.Live.Power.PmsetEverything.raw.txt"
+    LET run = SELECT Stdout, Stderr, ReturnCode
+              FROM execve(argv=["/bin/sh", "-c", "pmset -g everything > " + out + " 2>&1"])
     SELECT "pmset -g everything" AS Command, run[0].ReturnCode AS ExitCode,
-           len(list=run[0].Stdout) AS StdoutBytes, len(list=run[0].Stderr) AS StderrBytes,
-           run[0].Stderr AS Stderr,
-           upload(accessor="data", file=run[0].Stdout, name="PmsetEverything.raw.txt") AS RawUpload
-    FROM scope()
+           file_info(filename=out).Size AS StdoutBytes, run[0].Stderr AS Stderr,
+           upload(file=out, name="PmsetEverything.raw.txt") AS RawUpload FROM scope()
 
 - name: PmsetLog
   query: |
-    -- pmset -g log can be huge; cap at last 500 lines. execve runs /bin/sh for piping.
+    LET out = "/tmp/MacOS.Live.Power.PmsetLog.raw.txt"
     LET run = SELECT Stdout, Stderr, ReturnCode
-              FROM execve(argv=["/bin/sh", "-c", "pmset -g log | tail -500"])
+              FROM execve(argv=["/bin/sh", "-c", "pmset -g log | tail -500 > " + out])
     SELECT "pmset -g log | tail -500" AS Command, run[0].ReturnCode AS ExitCode,
-           len(list=run[0].Stdout) AS StdoutBytes, len(list=run[0].Stderr) AS StderrBytes,
-           run[0].Stderr AS Stderr,
-           upload(accessor="data", file=run[0].Stdout, name="PmsetLog.raw.txt") AS RawUpload
-    FROM scope()
+           file_info(filename=out).Size AS StdoutBytes, run[0].Stderr AS Stderr,
+           upload(file=out, name="PmsetLog.raw.txt") AS RawUpload FROM scope()
 
 - name: Uptime
   query: |
-    LET run = SELECT Stdout, Stderr, ReturnCode FROM execve(argv=["uptime"])
+    LET out = "/tmp/MacOS.Live.Power.Uptime.raw.txt"
+    LET run = SELECT Stdout, Stderr, ReturnCode
+              FROM execve(argv=["/bin/sh", "-c", "uptime > " + out])
     SELECT "uptime" AS Command, run[0].ReturnCode AS ExitCode,
-           len(list=run[0].Stdout) AS StdoutBytes, len(list=run[0].Stderr) AS StderrBytes,
-           run[0].Stderr AS Stderr,
-           upload(accessor="data", file=run[0].Stdout, name="Uptime.raw.txt") AS RawUpload
-    FROM scope()
+           file_info(filename=out).Size AS StdoutBytes, run[0].Stderr AS Stderr,
+           upload(file=out, name="Uptime.raw.txt") AS RawUpload FROM scope()
 
 - name: VmStat
   query: |
-    LET run = SELECT Stdout, Stderr, ReturnCode FROM execve(argv=["vm_stat"])
+    LET out = "/tmp/MacOS.Live.Power.VmStat.raw.txt"
+    LET run = SELECT Stdout, Stderr, ReturnCode
+              FROM execve(argv=["/bin/sh", "-c", "vm_stat > " + out])
     SELECT "vm_stat" AS Command, run[0].ReturnCode AS ExitCode,
-           len(list=run[0].Stdout) AS StdoutBytes, len(list=run[0].Stderr) AS StderrBytes,
-           run[0].Stderr AS Stderr,
-           upload(accessor="data", file=run[0].Stdout, name="VmStat.raw.txt") AS RawUpload
-    FROM scope()
+           file_info(filename=out).Size AS StdoutBytes, run[0].Stderr AS Stderr,
+           upload(file=out, name="VmStat.raw.txt") AS RawUpload FROM scope()
 
 - name: Sysctl
   query: |
-    LET run = SELECT Stdout, Stderr, ReturnCode FROM execve(argv=["sysctl", "-a"])
+    LET out = "/tmp/MacOS.Live.Power.Sysctl.raw.txt"
+    LET run = SELECT Stdout, Stderr, ReturnCode
+              FROM execve(argv=["/bin/sh", "-c", "sysctl -a > " + out + " 2>&1"])
     SELECT "sysctl -a" AS Command, run[0].ReturnCode AS ExitCode,
-           len(list=run[0].Stdout) AS StdoutBytes, len(list=run[0].Stderr) AS StderrBytes,
-           run[0].Stderr AS Stderr,
-           upload(accessor="data", file=run[0].Stdout, name="Sysctl.raw.txt") AS RawUpload
-    FROM scope()
+           file_info(filename=out).Size AS StdoutBytes, run[0].Stderr AS Stderr,
+           upload(file=out, name="Sysctl.raw.txt") AS RawUpload FROM scope()

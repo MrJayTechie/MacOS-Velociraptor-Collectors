@@ -10,20 +10,19 @@ precondition: SELECT OS FROM info() WHERE OS =~ 'darwin'
 sources:
 - name: PkgutilList
   query: |
-    LET run = SELECT Stdout, Stderr, ReturnCode FROM execve(argv=["pkgutil", "--pkgs"])
+    LET out = "/tmp/MacOS.Live.Packages.PkgutilList.raw.txt"
+    LET run = SELECT Stdout, Stderr, ReturnCode
+              FROM execve(argv=["/bin/sh", "-c", "pkgutil --pkgs > " + out])
     SELECT "pkgutil --pkgs" AS Command, run[0].ReturnCode AS ExitCode,
-           len(list=run[0].Stdout) AS StdoutBytes, len(list=run[0].Stderr) AS StderrBytes,
-           run[0].Stderr AS Stderr,
-           upload(accessor="data", file=run[0].Stdout, name="PkgutilList.raw.txt") AS RawUpload
-    FROM scope()
+           file_info(filename=out).Size AS StdoutBytes, run[0].Stderr AS Stderr,
+           upload(file=out, name="PkgutilList.raw.txt") AS RawUpload FROM scope()
 
 - name: PkgutilInfoPerPkg
   query: |
+    LET out = "/tmp/MacOS.Live.Packages.PkgutilInfoPerPkg.raw.txt"
     LET run = SELECT Stdout, Stderr, ReturnCode
               FROM execve(argv=["/bin/sh", "-c",
-                "for p in $(pkgutil --pkgs); do echo \"=== $p ===\"; pkgutil --pkg-info \"$p\"; echo; done"])
+                "for p in $(pkgutil --pkgs); do echo \"=== $p ===\"; pkgutil --pkg-info \"$p\"; echo; done > " + out])
     SELECT "pkgutil --pkg-info (per pkg, shell loop)" AS Command, run[0].ReturnCode AS ExitCode,
-           len(list=run[0].Stdout) AS StdoutBytes, len(list=run[0].Stderr) AS StderrBytes,
-           run[0].Stderr AS Stderr,
-           upload(accessor="data", file=run[0].Stdout, name="PkgutilInfoPerPkg.raw.txt") AS RawUpload
-    FROM scope()
+           file_info(filename=out).Size AS StdoutBytes, run[0].Stderr AS Stderr,
+           upload(file=out, name="PkgutilInfoPerPkg.raw.txt") AS RawUpload FROM scope()

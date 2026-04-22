@@ -10,9 +10,9 @@ precondition: SELECT OS FROM info() WHERE OS =~ 'darwin'
 sources:
 - name: LogStats
   query: |
-    LET run = SELECT Stdout, Stderr, ReturnCode FROM execve(argv=["log", "stats", "--last", "24h"])
+    LET out = "/tmp/MacOS.Live.LogStats.LogStats.raw.txt"
+    LET run = SELECT Stdout, Stderr, ReturnCode
+              FROM execve(argv=["/bin/sh", "-c", "log stats --last 24h > " + out + " 2>&1"])
     SELECT "log stats --last 24h" AS Command, run[0].ReturnCode AS ExitCode,
-           len(list=run[0].Stdout) AS StdoutBytes, len(list=run[0].Stderr) AS StderrBytes,
-           run[0].Stderr AS Stderr,
-           upload(accessor="data", file=run[0].Stdout, name="LogStats.raw.txt") AS RawUpload
-    FROM scope()
+           file_info(filename=out).Size AS StdoutBytes, run[0].Stderr AS Stderr,
+           upload(file=out, name="LogStats.raw.txt") AS RawUpload FROM scope()

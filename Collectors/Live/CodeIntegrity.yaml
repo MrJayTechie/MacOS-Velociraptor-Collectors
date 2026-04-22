@@ -11,22 +11,20 @@ precondition: SELECT OS FROM info() WHERE OS =~ 'darwin'
 sources:
 - name: PsaxComm
   query: |
+    LET out = "/tmp/MacOS.Live.CodeIntegrity.PsaxComm.raw.txt"
     LET run = SELECT Stdout, Stderr, ReturnCode
-              FROM execve(argv=["ps", "-Axo", "pid,comm"])
+              FROM execve(argv=["/bin/sh", "-c", "ps -Axo pid,comm > " + out])
     SELECT "ps -Axo pid,comm" AS Command, run[0].ReturnCode AS ExitCode,
-           len(list=run[0].Stdout) AS StdoutBytes, len(list=run[0].Stderr) AS StderrBytes,
-           run[0].Stderr AS Stderr,
-           upload(accessor="data", file=run[0].Stdout, name="PsaxComm.raw.txt") AS RawUpload
-    FROM scope()
+           file_info(filename=out).Size AS StdoutBytes, run[0].Stderr AS Stderr,
+           upload(file=out, name="PsaxComm.raw.txt") AS RawUpload FROM scope()
 
 - name: CodesignPerBinary
   query: |
+    LET out = "/tmp/MacOS.Live.CodeIntegrity.CodesignPerBinary.raw.txt"
     LET run = SELECT Stdout, Stderr, ReturnCode
               FROM execve(argv=["/bin/sh", "-c",
-                "ps -Axo comm= | sort -u | grep '^/' | while read p; do echo \"=== $p ===\"; codesign -dv --verbose=4 \"$p\" 2>&1; spctl -a -vv \"$p\" 2>&1; shasum -a 256 \"$p\" 2>&1; echo; done"])
+                "ps -Axo comm= | sort -u | grep '^/' | while read p; do echo \"=== $p ===\"; codesign -dv --verbose=4 \"$p\" 2>&1; spctl -a -vv \"$p\" 2>&1; shasum -a 256 \"$p\" 2>&1; echo; done > " + out])
     SELECT "codesign + spctl + shasum per running binary (shell loop)" AS Command,
            run[0].ReturnCode AS ExitCode,
-           len(list=run[0].Stdout) AS StdoutBytes, len(list=run[0].Stderr) AS StderrBytes,
-           run[0].Stderr AS Stderr,
-           upload(accessor="data", file=run[0].Stdout, name="CodesignPerBinary.raw.txt") AS RawUpload
-    FROM scope()
+           file_info(filename=out).Size AS StdoutBytes, run[0].Stderr AS Stderr,
+           upload(file=out, name="CodesignPerBinary.raw.txt") AS RawUpload FROM scope()
