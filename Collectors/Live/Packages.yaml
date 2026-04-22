@@ -19,14 +19,11 @@ sources:
 
 - name: PkgutilInfoPerPkg
   query: |
-    -- For every installed pkg id, capture pkg-info (install date, location, volume).
-    LET pkgs_out = SELECT Stdout FROM execve(argv=["pkgutil", "--pkgs"])
-    LET pkgs = SELECT Line AS PkgId
-               FROM parse_lines(filename=pkgs_out[0].Stdout, accessor="data")
-               WHERE Line != ""
-
-    SELECT
-      PkgId,
-      (SELECT Stdout, Stderr, ReturnCode
-       FROM execve(argv=["pkgutil", "--pkg-info", PkgId])) AS Info
-    FROM pkgs
+    LET run = SELECT Stdout, Stderr, ReturnCode
+              FROM execve(argv=["/bin/sh", "-c",
+                "for p in $(pkgutil --pkgs); do echo \"=== $p ===\"; pkgutil --pkg-info \"$p\"; echo; done"])
+    SELECT "pkgutil --pkg-info (per pkg, shell loop)" AS Command, run[0].ReturnCode AS ExitCode,
+           len(list=run[0].Stdout) AS StdoutBytes, len(list=run[0].Stderr) AS StderrBytes,
+           run[0].Stderr AS Stderr,
+           upload(accessor="data", file=run[0].Stdout, name="PkgutilInfoPerPkg.raw.txt") AS RawUpload
+    FROM scope()
